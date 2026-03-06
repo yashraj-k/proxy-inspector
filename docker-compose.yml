@@ -1,0 +1,21 @@
+# Local proxy testing: proxy + target HTTP service
+# Usage: docker compose up --build
+# Test: curl http://localhost:8000/hello (via proxy to target-service)
+
+services:
+  proxy:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - UPSTREAM_BASE_URL=http://target-service:8080
+      - PROXY_LATENCY_MS=100
+      - FLAKINESS_PERCENTAGE=20
+    depends_on:
+      - target-service
+
+  target-service:
+    build: ./target_service
+    expose:
+      - "8080"
+    # No ports published; only proxy talks to it

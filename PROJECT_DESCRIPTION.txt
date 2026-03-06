@@ -1,0 +1,66 @@
+Project: High-Performance HTTP & WebSocket Proxy
+
+1. What this project is
+This project is a developer-focused HTTP and WebSocket proxy built on FastAPI and HTTPX. Instead of exposing its own business APIs, it sits in front of other services and forwards all incoming HTTP requests and WebSocket connections to a configured upstream server.
+
+Key capabilities:
+- Catch-all HTTP proxy: Any path (for example /posts/1 or /hello) sent to the proxy is forwarded to the upstream base URL, preserving method, path, query parameters, headers, and body.
+- WebSocket tunneling: WebSocket connections are accepted at /ws/{path:path} and bridged to a configurable upstream WebSocket endpoint.
+- Latency simulation: Requests are deliberately delayed by a configurable amount (PROXY_LATENCY_MS) to mimic slow networks or distant regions.
+- Debug and tracing headers: Each proxied request can be tagged with headers like X-Proxy-Observed and X-Debug-Session-ID so that traffic can be correlated in logs and external observability tools.
+- Observability and logging: Each request is logged with a clear [PROXY] prefix and an X-Internal-Latency response header that shows how long the proxy spent handling the request.
+- Resilience: Upstream timeouts and connectivity issues are converted into stable JSON error responses with appropriate HTTP status codes (e.g. 504 Gateway Timeout, 503 Service Unavailable).
+
+2. Why this project is useful
+- For backend engineers: It acts as a realistic playground to test how services behave behind a proxy, including latency, headers, and error conditions, without needing to change the services themselves.
+- For debugging and reproducing issues: You can mirror production-like network behavior on a laptop (slow links, intermittent failures) and observe how downstream services respond, which is critical for debugging hard-to-reproduce issues.
+- For integration testing: Teams can point their test environments through this proxy to validate performance, retry logic, and timeout handling when upstream services are slow or flaky.
+- For interview or take-home tasks: The code demonstrates understanding of async I/O, HTTP/WebSocket handling, middleware design, environment-based configuration, and operational concerns (logging, timeouts, error handling).
+
+3. How to run it (high level)
+- Local, default upstream:
+  - Use Python 3.10+.
+  - Create a virtual environment, install requirements, and run `uvicorn main:app --host 0.0.0.0 --port 8000`.
+  - By default, HTTP requests are forwarded to https://jsonplaceholder.typicode.com, so `curl http://localhost:8000/posts/1` proxies to that public API.
+- With Docker and local target service:
+  - Run `docker compose up --build` to start the proxy and a minimal FastAPI target service.
+  - Requests like `curl http://localhost:8000/hello` are forwarded to the target-service container at http://target-service:8080/hello.
+
+4. Improvements needed to make this project more complete and useful
+
+4.1 Configuration and usability
+- Add CLI flags: Provide a small command-line interface (for example using Typer or argparse) to override host, port, UPSTREAM_BASE_URL, and timeouts without changing environment variables or code.
+- Dynamic upstream selection: Support per-request override of upstream (via a header or query parameter) so a single proxy instance can route to multiple backends for A/B testing or multi-tenant scenarios.
+- Validation of configuration: On startup, validate that UPSTREAM_BASE_URL and WS_UPSTREAM_BASE_URL are valid URLs and fail fast with clear messages if they are not.
+
+4.2 Security and access control
+- Restrict allowed upstreams: Add an allowlist of upstream hosts or patterns so the proxy cannot be abused as an open proxy to arbitrary destinations.
+- Authentication and authorization: Optionally require an API key or token on incoming requests and reject unauthorized clients.
+- Rate limiting: Add simple rate limiting (per IP or per token) to prevent abuse and to simulate production rate-limiting behavior.
+
+4.3 Observability and monitoring
+- Structured logging: Emit structured JSON logs (method, path, status, upstream URL, latency, trace ID) so logs can be ingested cleanly by tools like ELK, Loki, or Datadog.
+- Metrics: Expose Prometheus metrics (request counts, error rates, latency histograms, upstream timeouts) so the proxy can be monitored over time.
+- Tracing: Integrate with OpenTelemetry to propagate trace IDs and spans between client, proxy, and upstream services for end-to-end tracing.
+
+4.4 Reliability and robustness
+- Connection pooling and re-use: Tune the HTTPX client configuration (connection pooling, keep-alive) for high-throughput scenarios, and consider a shared client instance instead of creating a new client per request.
+- Backoff and retry policies: For certain transient upstream errors, add configurable retry with exponential backoff, while still preserving observability and not hiding failures.
+- Graceful shutdown: Ensure that in-flight requests and WebSocket connections are drained gracefully when the proxy is shutting down.
+
+4.5 WebSocket capabilities
+- Authentication and headers for WebSockets: Allow custom headers or tokens to be attached when connecting to upstream WebSocket servers.
+- Backpressure handling: Improve handling of high message volume (buffer limits, flow control) to prevent memory growth when upstream or downstream is slow.
+- Better error messages: Return clearer close codes and messages back to the client when the upstream WebSocket fails to connect or terminates unexpectedly.
+
+4.6 Developer experience
+- Automated tests: Add unit tests for the HTTP proxy logic, middleware, and configuration parsing, plus integration tests that spin up a test upstream and verify end-to-end behavior.
+- Example scenarios: Provide additional example scripts or docs showing how to simulate specific situations (slow upstream, random failures, WebSocket echo tests, etc.).
+- Typed configuration and models: Use Pydantic settings or similar for configuration to get validation and type safety, and document all options clearly.
+
+4.7 Production readiness
+- HTTPS/TLS termination: Add support for running behind TLS (or document recommended setups with a reverse proxy like Nginx or Traefik for TLS termination).
+- Horizontal scaling guidance: Document how to run multiple replicas behind a load balancer and how state (like debug session IDs) should be handled in a multi-instance setup.
+- Resource limits and tuning: Provide guidelines for tuning worker count, timeouts, and latency settings for different workloads, and document safe defaults.
+
+In summary, this proxy is already a solid foundation for a BrowserStack-style developer tool: it forwards HTTP and WebSocket traffic, injects latency and debug headers, and exposes clear logging and error behavior. By adding stronger configuration options, security controls, observability metrics, extensive tests, and production-focused features (like rate limiting and tracing), it can become a robust, reusable component in real-world backend and infrastructure environments.

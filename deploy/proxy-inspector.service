@@ -1,0 +1,19 @@
+# Systemd unit for Proxy Inspector on AWS EC2.
+# Copy to /etc/systemd/system/ and set WorkingDirectory/User/ExecStart to your project path.
+# Uses deploy/run.sh so PORT from .env is respected.
+
+[Unit]
+Description=HTTP/WebSocket Proxy (Proxy Inspector)
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/proxy-inspector
+Environment=PATH=/home/ec2-user/proxy-inspector/.venv/bin
+ExecStart=/home/ec2-user/proxy-inspector/deploy/run.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
