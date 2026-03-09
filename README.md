@@ -16,6 +16,13 @@ A production-style developer infrastructure tool that acts as an HTTP and WebSoc
 - FastAPI, Starlette, Uvicorn
 - HTTPX (AsyncClient), websockets, asyncio
 
+## Live Demo
+
+You can hit the deployed proxy here:
+
+- **Health check**: `http://16.171.171.108:8000/health`
+- **Example request**: `http://16.171.171.108:8000/hello`
+
 ## Project Structure
 
 ```
