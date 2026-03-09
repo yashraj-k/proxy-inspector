@@ -245,6 +245,3 @@ echo "Done. Check server stdout for structured JSON logs."
 
 All error responses include `X-Internal-Latency` when applicable.
 
-## License
-
-MIT (or as specified by your organization).
