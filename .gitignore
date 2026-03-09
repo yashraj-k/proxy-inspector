@@ -34,3 +34,13 @@ htmlcov/
 
 # Optional
 *.zip
+
+# Docs and guides that are not required for runtime
+BUILD_FROM_SCRATCH.md
+PROJECT_DESCRIPTION.txt
+GITHUB_SETUP.md
+docs/
+
+# Example and local testing assets (not required in production repo)
+.env.example
+target_service/
